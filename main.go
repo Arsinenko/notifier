@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 	"notifier/config"
-	"notifier/folder_watcher"
-	"notifier/mail_notifier"
-	"notifier/models"
+	"notifier/internal/folder_watcher"
+	"notifier/internal/mail_notifier"
+	models2 "notifier/internal/models"
 	"notifier/telegram_bot"
 	"os"
 	"os/signal"
@@ -20,11 +20,11 @@ import (
 var (
 	eventsMu sync.RWMutex
 	usersMu  sync.RWMutex
-	events   = make([]models.Event, 0)
-	users    = make([]*models.User, 0)
+	events   = make([]models2.Event, 0)
+	users    = make([]*models2.User, 0)
 )
 
-func NotesManager(cfg *config.Config, bot *tgbotapi.BotAPI, notsChan chan models.Event) {
+func NotesManager(cfg *config.Config, bot *tgbotapi.BotAPI, notsChan chan models2.Event) {
 	ticker := time.NewTicker(time.Minute)
 	defer ticker.Stop()
 
@@ -64,7 +64,7 @@ func NotesManager(cfg *config.Config, bot *tgbotapi.BotAPI, notsChan chan models
 
 				if isScheduledTime {
 					eventsMu.RLock()
-					elems := models.GetEvents(events, user.LastNotifiedAt, now)
+					elems := models2.GetEvents(events, user.LastNotifiedAt, now)
 					eventsMu.RUnlock()
 
 					if len(elems) > 0 {
@@ -79,8 +79,8 @@ func NotesManager(cfg *config.Config, bot *tgbotapi.BotAPI, notsChan chan models
 	}
 }
 
-func NotifyUser(user models.User, cfg *config.Config, note string, bot *tgbotapi.BotAPI) {
-	if user.Notifier == models.MailNotifier {
+func NotifyUser(user models2.User, cfg *config.Config, note string, bot *tgbotapi.BotAPI) {
+	if user.Notifier == models2.MailNotifier {
 		err := mail_notifier.SendEmail(mail_notifier.EmailAccount{
 			Host:     cfg.Mail.Host,
 			Port:     cfg.Mail.Port,
@@ -92,7 +92,7 @@ func NotifyUser(user models.User, cfg *config.Config, note string, bot *tgbotapi
 			return
 		}
 	}
-	if user.Notifier == models.TelegramNotifier {
+	if user.Notifier == models2.TelegramNotifier {
 		_, err := bot.Send(tgbotapi.NewMessage(user.ID, note))
 		if err != nil {
 			fmt.Println(err)
@@ -110,12 +110,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	users, err = models.LoadFromJson(cfg.UsersFilepath)
+	users, err = models2.LoadFromJson(cfg.UsersFilepath)
 	if err != nil {
-		users = make([]*models.User, 0)
+		users = make([]*models2.User, 0)
 	}
 
-	notsChan := make(chan models.Event)
+	notsChan := make(chan models2.Event)
 
 	go telegram_bot.StartBot(cfg, bot, &users, &usersMu)
 	go folder_watcher.Watcher(notsChan, cfg.TargetFolder)
@@ -125,7 +125,7 @@ func main() {
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 	<-quit
 
-	models.SaveToJson(users, cfg.UsersFilepath)
+	models2.SaveToJson(users, cfg.UsersFilepath)
 
 	fmt.Println("Shutting down...")
 	close(notsChan)

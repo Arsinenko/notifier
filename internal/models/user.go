@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/json"
+	"notifier/internal/permissions"
 	"os"
 	"time"
 )
@@ -14,13 +15,14 @@ const (
 )
 
 type User struct {
-	ID               int64        `json:"id"`
-	Frequency        string       `json:"frequency"`
-	Notifier         NotifierType `json:"notifier"`
-	Email            string       `json:"email"`
-	VerificationCode string       `json:"verification_code"` // Храним код для проверки
-	IsVerified       bool         `json:"is_verified"`
-	LastNotifiedAt   time.Time    `json:"last_notified_at"`
+	ID               int64                    `json:"id"`
+	Frequency        string                   `json:"frequency"`
+	Notifier         NotifierType             `json:"notifier"`
+	Email            string                   `json:"email"`
+	VerificationCode string                   `json:"verification_code"` // Храним код для проверки
+	IsVerified       bool                     `json:"is_verified"`
+	LastNotifiedAt   time.Time                `json:"last_notified_at"`
+	Permissions      []permissions.Permission `json:"permissions"`
 }
 
 func SaveToJson(users []*User, filepath string) error {

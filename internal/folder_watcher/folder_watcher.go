@@ -2,7 +2,7 @@ package folder_watcher
 
 import (
 	"log"
-	"notifier/models"
+	"notifier/internal/models"
 	"time"
 
 	"github.com/fsnotify/fsnotify"

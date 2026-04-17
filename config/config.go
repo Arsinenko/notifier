@@ -2,7 +2,7 @@ package config
 
 import (
 	"math/rand"
-	"notifier/mail_notifier"
+	"notifier/internal/mail_notifier"
 	"os"
 	"time"
 
