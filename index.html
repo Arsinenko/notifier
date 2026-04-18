@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Notifier Admin Panel</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background: #f4f4f9; }
+        table { width: 100%; border-collapse: collapse; background: white; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
+        th { background: #eee; }
+        .form-section { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        input, select { padding: 8px; margin: 5px 0; display: block; width: 100%; box-sizing: border-box; }
+        button { padding: 10px 15px; cursor: pointer; background: #28a745; color: white; border: none; border-radius: 4px; }
+        button.del { background: #dc3545; }
+    </style>
+</head>
+<body>
+<h2>Управление уведомлениями</h2>
+
+<div class="form-section">
+    <h3>Добавить пользователя</h3>
+    <input type="number" id="userId" placeholder="ID (Telegram ID)">
+    <input type="text" id="email" placeholder="Email (если Mail)">
+    <select id="notifier">
+        <option value="telegram">Telegram</option>
+        <option value="mail">Mail</option>
+    </select>
+    <input type="text" id="frequency" placeholder="Частота (Immediate или 10:00 18:00)">
+    <button onclick="addUser()">Добавить</button>
+</div>
+
+<table>
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>Тип</th>
+        <th>Email</th>
+        <th>Частота</th>
+        <th>Действие</th>
+    </tr>
+    </thead>
+    <tbody id="userTable"></tbody>
+</table>
+
+<script>
+    const ALL_PERMISSIONS = ["CREATE", "UPDATE", "DELETE"];
+
+    async function loadUsers() {
+        const res = await fetch('/users');
+        const users = await res.json();
+        const tbody = document.getElementById('userTable');
+        tbody.innerHTML = '';
+
+        users.forEach(u => {
+            // Генерируем чекбоксы для каждого права
+            let permsHtml = ALL_PERMISSIONS.map(p => `
+            <label style="margin-right:10px; font-size: 12px;">
+                <input type="checkbox"
+                       ${u.permissions && u.permissions.includes(p) ? 'checked' : ''}
+                       onchange="updatePermissions(${u.id}, '${p}', this.checked)">
+                ${p}
+            </label>
+        `).join('');
+
+            tbody.innerHTML += `
+            <tr>
+                <td>${u.id}</td>
+                <td><b>${u.notifier}</b></td>
+                <td>${u.email || '-'}</td>
+                <td><code>${u.frequency}</code></td>
+                <td>${permsHtml}</td>
+                <td><button class="del" onclick="deleteUser(${u.id})">Удалить</button></td>
+            </tr>`;
+        });
+    }
+
+    async function updatePermissions(userId, perm, isChecked) {
+        // Сначала получаем текущего пользователя, чтобы знать его текущие права
+        const res = await fetch('/users');
+        const users = await res.json();
+        const user = users.find(u => u.id === userId);
+
+        let perms = user.permissions || [];
+        if (isChecked) {
+            if (!perms.includes(perm)) perms.push(perm);
+        } else {
+            perms = perms.filter(p => p !== perm);
+        }
+
+        // Отправляем обновленный список на сервер
+        await fetch(`/users/${userId}/permissions`, {
+            method: 'PATCH',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(perms)
+        });
+        console.log(`Updated permissions for ${userId}:`, perms);
+    }
+
+    async function addUser() {
+        const user = {
+            id: parseInt(document.getElementById('userId').value),
+            email: document.getElementById('email').value,
+            notifier: document.getElementById('notifier').value,
+            frequency: document.getElementById('frequency').value,
+            permissions: ["CREATE"] // по умолчанию
+        };
+        await fetch('/users', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(user)
+        });
+        loadUsers();
+    }
+
+    async function deleteUser(id) {
+        await fetch(`/users/${id}`, { method: 'DELETE' });
+        loadUsers();
+    }
+
+    loadUsers();
+</script>
+</body>
+</html>

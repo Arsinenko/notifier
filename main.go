@@ -6,7 +6,8 @@ import (
 	"notifier/internal/folder_watcher"
 	"notifier/internal/mail_notifier"
 	models2 "notifier/internal/models"
-	"notifier/telegram_bot"
+	"notifier/internal/telegram_bot"
+	"notifier/internal/user_api"
 	"os"
 	"os/signal"
 	"strings"
@@ -116,6 +117,7 @@ func main() {
 	}
 
 	notsChan := make(chan models2.Event)
+	go user_api.RunUserAPI("8080", &users, &usersMu)
 
 	go telegram_bot.StartBot(cfg, bot, &users, &usersMu)
 	go folder_watcher.Watcher(notsChan, cfg.TargetFolder)
