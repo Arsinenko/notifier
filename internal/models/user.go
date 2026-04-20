@@ -16,6 +16,7 @@ const (
 
 type User struct {
 	ID               int64                    `json:"id"`
+	UserLabel        string                   `json:"user_label"`
 	Frequency        string                   `json:"frequency"`
 	Notifier         NotifierType             `json:"notifier"`
 	Email            string                   `json:"email"`

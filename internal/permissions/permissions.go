@@ -4,6 +4,7 @@ type Permission string
 
 const (
 	CreatePermission Permission = "CREATE"
-	UpdatePermission Permission = "UPDATE"
-	DeletePermission Permission = "DELETE"
+	RenamePermission Permission = "RENAME"
+	DeletePermission Permission = "REMOVE"
+	WritePermission  Permission = "WRITE"
 )

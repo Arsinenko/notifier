@@ -3,10 +3,13 @@ package models
 import (
 	"fmt"
 	"time"
+
+	"github.com/fsnotify/fsnotify"
 )
 
 type Event struct {
 	ID        int64
+	Op        fsnotify.Op
 	Content   string
 	CreatedAt time.Time
 }

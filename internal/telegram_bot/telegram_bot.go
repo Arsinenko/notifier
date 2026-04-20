@@ -34,58 +34,54 @@ func handleMessage(cfg *config.Config, bot *tgbotapi.BotAPI, msg *tgbotapi.Messa
 	}
 
 	mu.Lock()
+	defer mu.Unlock()
 	user := findUserByID(*users, msg.From.ID)
-
-	// Проверяем, является ли ввод временем (формат HH:MM или список через пробел)
-	if user != nil && (strings.Contains(msg.Text, ":") || msg.Text == "Immediate") {
-		user.Frequency = msg.Text
-		mu.Unlock()
-
-		keyboard := tgbotapi.NewInlineKeyboardMarkup(
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonData("Telegram", "notif_tg"),
-				tgbotapi.NewInlineKeyboardButtonData("Email", "notif_mail"),
-			),
-		)
-		resp := tgbotapi.NewMessage(msg.Chat.ID, "Настройки обновлены ("+msg.Text+"). Куда присылать уведомления?")
-		resp.ReplyMarkup = keyboard
-		bot.Send(resp)
-		return
-	}
-	mu.Unlock()
-
-	mu.RLock()
-	user = findUserByID(*users, msg.From.ID)
-	mu.RUnlock()
 
 	if user == nil {
 		bot.Send(tgbotapi.NewMessage(msg.Chat.ID, "Пожалуйста, начните с /start"))
 		return
 	}
 
+	// 1. Обработка ввода времени (Frequency)
+	if strings.Contains(msg.Text, ":") || msg.Text == "Immediate" {
+		user.Frequency = msg.Text
+		keyboard := tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("Telegram", "notif_tg"),
+				tgbotapi.NewInlineKeyboardButtonData("Email", "notif_mail"),
+			),
+		)
+		resp := tgbotapi.NewMessage(msg.Chat.ID, "Настройки сохранены. Куда присылать уведомления?")
+		resp.ReplyMarkup = keyboard
+		bot.Send(resp)
+		return
+	}
+
+	// 2. Обработка ввода Email
 	if user.Notifier == models.MailNotifier && !user.IsVerified {
 		if user.Email == "" {
 			user.Email = msg.Text
 			code := fmt.Sprintf("%04d", rand.Intn(10000))
 			user.VerificationCode = code
-
-			go mail_notifier.SendEmail(mail_notifier.EmailAccount{
-				Host:     cfg.Mail.Host,
-				Port:     cfg.Mail.Port,
-				Email:    cfg.Mail.Email,
-				Password: cfg.Mail.Password,
-			}, user.Email, "Код подтверждения", "Ваш код: "+code)
-
-			bot.Send(tgbotapi.NewMessage(msg.Chat.ID, fmt.Sprintf("Я отправил код на %s. Введите его здесь:", msg.Text)))
+			go mail_notifier.SendEmail(mail_notifier.EmailAccount{ /*...*/ }, user.Email, "Код", "Код: "+code)
+			bot.Send(tgbotapi.NewMessage(msg.Chat.ID, "Код отправлен на "+msg.Text+". Введите его:"))
 		} else {
 			if msg.Text == user.VerificationCode {
 				user.IsVerified = true
-				user.LastNotifiedAt = time.Now()
-				bot.Send(tgbotapi.NewMessage(msg.Chat.ID, "✅ Почта подтверждена! Настройки сохранены."))
+				bot.Send(tgbotapi.NewMessage(msg.Chat.ID, "✅ Почта подтверждена! Теперь введите ваше имя (Label) для системы:"))
 			} else {
 				bot.Send(tgbotapi.NewMessage(msg.Chat.ID, "❌ Неверный код. Попробуйте еще раз:"))
 			}
 		}
+		return
+	}
+
+	// 3. НОВОЕ: Обработка ввода UserLabel
+	if user.IsVerified && user.UserLabel == "" {
+		user.UserLabel = msg.Text
+		user.LastNotifiedAt = time.Now()
+		bot.Send(tgbotapi.NewMessage(msg.Chat.ID, fmt.Sprintf("Принято, %s! Все настройки завершены.\nРасписание: %s\nИзменить: /edit", user.UserLabel, user.Frequency)))
+		return
 	}
 }
 
@@ -129,16 +125,15 @@ func handleCallback(cfg *config.Config, bot *tgbotapi.BotAPI, cb *tgbotapi.Callb
 	if cb.Data == "notif_tg" {
 		user.Notifier = models.TelegramNotifier
 		user.IsVerified = true
-		user.LastNotifiedAt = time.Now()
-		bot.Send(tgbotapi.NewEditMessageText(cb.Message.Chat.ID, cb.Message.MessageID, "Готово! Буду писать в Telegram.\nРасписание: "+user.Frequency+"\nИзменить: /edit"))
+		bot.Send(tgbotapi.NewEditMessageText(cb.Message.Chat.ID, cb.Message.MessageID, "Выбран Telegram. Теперь введите ваше имя (Label) для системы:"))
 	}
 
 	if cb.Data == "notif_mail" {
 		user.Notifier = models.MailNotifier
 		user.Email = ""
+		user.IsVerified = false
 		bot.Send(tgbotapi.NewEditMessageText(cb.Message.Chat.ID, cb.Message.MessageID, "Введите ваш Email:"))
 	}
-
 	bot.Request(tgbotapi.NewCallback(cb.ID, ""))
 }
 

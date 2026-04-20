@@ -40,9 +40,15 @@ func NotesManager(cfg *config.Config, bot *tgbotapi.BotAPI, notsChan chan models
 			eventsMu.Unlock()
 
 			usersMu.RLock()
+			respNote := fmt.Sprintf("%s %s", note.CreatedAt.Format("2006.01.02 15:04"), note.Content)
 			for _, user := range users {
 				if user.Frequency == "Immediate" {
-					NotifyUser(*user, cfg, note.Content, bot)
+
+					for _, perm := range user.Permissions {
+						if string(perm) == strings.ToUpper(note.Op.String()) {
+							NotifyUser(*user, cfg, respNote, bot)
+						}
+					}
 				}
 			}
 			usersMu.RUnlock()

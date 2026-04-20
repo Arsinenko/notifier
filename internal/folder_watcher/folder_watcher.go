@@ -3,25 +3,39 @@ package folder_watcher
 import (
 	"log"
 	"notifier/internal/models"
+	"os" // Добавляем пакет os
 	"time"
 
 	"github.com/fsnotify/fsnotify"
 )
 
 func Watcher(notsChan chan models.Event, dir string) {
-	watcher, _ := fsnotify.NewWatcher()
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Fatal(err)
+	}
 	defer watcher.Close()
 
 	go func() {
 		for {
 			select {
-			case Event, ok := <-watcher.Events:
+			case event, ok := <-watcher.Events:
 				if !ok {
 					return
 				}
+
+				op := event.Op
+				if event.Op&fsnotify.Rename == fsnotify.Rename {
+					if _, err := os.Stat(event.Name); os.IsNotExist(err) {
+						// Подменяем тип операции для вашей модели данных
+						op = fsnotify.Remove
+					}
+				}
+
 				notsChan <- models.Event{
 					ID:        0,
-					Content:   Event.String(),
+					Op:        op, // используем обработанную операцию
+					Content:   event.String(),
 					CreatedAt: time.Now(),
 				}
 
@@ -36,5 +50,4 @@ func Watcher(notsChan chan models.Event, dir string) {
 
 	_ = watcher.Add(dir)
 	<-make(chan struct{})
-
 }

@@ -2,120 +2,752 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Notifier Admin Panel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifier Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
-        body { font-family: sans-serif; margin: 20px; background: #f4f4f9; }
-        table { width: 100%; border-collapse: collapse; background: white; }
-        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
-        th { background: #eee; }
-        .form-section { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        input, select { padding: 8px; margin: 5px 0; display: block; width: 100%; box-sizing: border-box; }
-        button { padding: 10px 15px; cursor: pointer; background: #28a745; color: white; border: none; border-radius: 4px; }
-        button.del { background: #dc3545; }
+        :root {
+            --bg: #0f1117;
+            --surface: #161b27;
+            --surface2: #1e2535;
+            --border: rgba(255,255,255,0.10);
+            --border2: rgba(255,255,255,0.18);
+            --accent: #3b82f6;
+            --accent-dim: rgba(59,130,246,0.15);
+            --accent-green: #16a34a;
+            --accent-green-dim: rgba(22,163,74,0.12);
+            --accent-red: #ef4444;
+            --accent-red-dim: rgba(239,68,68,0.12);
+            --accent-amber: #d97706;
+            --accent-amber-dim: rgba(217,119,6,0.12);
+            --text: #f2f4f8;
+            --text-muted: #9ba3bb;
+            --text-faint: #636b85;
+            --row-hover: rgba(255,255,255,0.025);
+            --font: 'IBM Plex Sans', sans-serif;
+            --mono: 'IBM Plex Mono', monospace;
+            --radius: 10px;
+            --radius-sm: 6px;
+            --transition: 0.18s ease;
+        }
+
+        [data-theme="light"] {
+            --bg: #f0f2f5;
+            --surface: #ffffff;
+            --surface2: #f5f6f8;
+            --border: rgba(0,0,0,0.08);
+            --border2: rgba(0,0,0,0.13);
+            --accent: #2563eb;
+            --accent-dim: rgba(37,99,235,0.1);
+            --accent-green: #16a34a;
+            --accent-green-dim: rgba(22,163,74,0.1);
+            --accent-red: #dc2626;
+            --accent-red-dim: rgba(220,38,38,0.08);
+            --accent-amber: #b45309;
+            --accent-amber-dim: rgba(180,83,9,0.09);
+            --text: #0d1117;
+            --text-muted: #424a5c;
+            --text-faint: #7c8494;
+            --row-hover: rgba(0,0,0,0.025);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 0;
+        }
+
+        /* ── Header ── */
+        .header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 0 32px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            height: 56px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .header-icon {
+            width: 28px; height: 28px;
+            background: var(--accent-dim);
+            border: 1px solid rgba(59,130,246,0.3);
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .header-icon svg { width: 14px; height: 14px; stroke: var(--accent); fill: none; }
+        .header h1 {
+            font-size: 14px; font-weight: 600;
+            letter-spacing: 0.04em; text-transform: uppercase;
+            color: var(--text);
+        }
+        .header-badge {
+            font-family: var(--mono);
+            font-size: 11px; padding: 2px 8px;
+            border-radius: 20px;
+            background: var(--accent-dim);
+            color: var(--accent);
+            border: 1px solid rgba(59,130,246,0.25);
+        }
+
+        /* ── Layout ── */
+        .layout {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 0;
+            min-height: calc(100vh - 56px);
+        }
+        .sidebar {
+            border-right: 1px solid var(--border);
+            padding: 28px 24px;
+            background: var(--surface);
+        }
+        .main {
+            padding: 28px 32px;
+            overflow-x: auto;
+        }
+
+        /* ── Section titles ── */
+        .section-title {
+            font-size: 11px; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.08em;
+            color: var(--text-faint);
+            margin-bottom: 16px;
+        }
+
+        /* ── Form ── */
+        .form-group { margin-bottom: 12px; }
+        .form-group label {
+            display: block;
+            font-size: 11px; font-weight: 500;
+            color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: 0.06em;
+            margin-bottom: 5px;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            background: var(--surface2);
+            border: 1px solid var(--border2);
+            border-radius: var(--radius-sm);
+            color: var(--text);
+            font-family: var(--font);
+            font-size: 13px;
+            padding: 8px 11px;
+            outline: none;
+            transition: border-color var(--transition);
+            -webkit-appearance: none;
+        }
+        .form-group input::placeholder { color: var(--text-faint); }
+        .form-group input:focus,
+        .form-group select:focus { border-color: var(--accent); }
+        .form-group select { cursor: pointer; }
+
+        /* Frequency row */
+        .freq-row { display: flex; gap: 8px; }
+        .freq-row input { flex: 1; }
+        .freq-row .freq-toggle {
+            background: var(--surface2);
+            border: 1px solid var(--border2);
+            border-radius: var(--radius-sm);
+            color: var(--text-muted);
+            font-size: 11px;
+            padding: 0 10px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all var(--transition);
+        }
+        .freq-row .freq-toggle:hover { border-color: var(--accent); color: var(--accent); }
+
+        .freq-presets {
+            display: none;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 6px;
+        }
+        .freq-presets.open { display: flex; }
+        .freq-preset {
+            font-family: var(--mono);
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 20px;
+            border: 1px solid var(--border2);
+            background: var(--surface2);
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+        .freq-preset:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+        .btn-add {
+            width: 100%;
+            margin-top: 4px;
+            padding: 10px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-family: var(--font);
+            font-size: 13px; font-weight: 500;
+            cursor: pointer;
+            transition: opacity var(--transition), transform var(--transition);
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+        }
+        .btn-add:hover { opacity: 0.88; }
+        .btn-add:active { transform: scale(0.98); }
+        .btn-add svg { width: 14px; height: 14px; stroke: #fff; fill: none; }
+
+        /* ── Stats ── */
+        .stats { display: flex; gap: 10px; margin-bottom: 20px; }
+        .stat {
+            flex: 1;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px 14px;
+        }
+        .stat-label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+        .stat-value { font-family: var(--mono); font-size: 20px; font-weight: 500; color: var(--text); }
+        .stat-value.blue { color: var(--accent); }
+        .stat-value.green { color: var(--accent-green); }
+
+        /* ── Table ── */
+        .table-wrap {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        thead tr { border-bottom: 1px solid var(--border2); }
+        thead th {
+            padding: 10px 14px;
+            font-size: 10px; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.08em;
+            color: var(--text-faint);
+            text-align: left;
+            white-space: nowrap;
+        }
+        tbody tr {
+            border-bottom: 1px solid var(--border);
+            transition: background var(--transition);
+        }
+        tbody tr:last-child { border-bottom: none; }
+        tbody tr:hover { background: var(--row-hover); }
+        tbody td { padding: 11px 14px; vertical-align: middle; }
+
+        /* ID cell */
+        .cell-id {
+            font-family: var(--mono); font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* Type badge */
+        .badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 11px; font-weight: 500;
+            padding: 3px 8px; border-radius: 20px;
+            border: 1px solid;
+        }
+        .badge-tg {
+            background: rgba(0,136,204,0.12);
+            border-color: rgba(0,136,204,0.3);
+            color: #29b6f6;
+        }
+        .badge-mail {
+            background: var(--accent-amber-dim);
+            border-color: rgba(245,158,11,0.3);
+            color: var(--accent-amber);
+        }
+        .badge svg { width: 10px; height: 10px; fill: currentColor; }
+
+        /* Frequency cell */
+        .cell-freq { display: flex; align-items: center; gap: 8px; }
+        .freq-code {
+            font-family: var(--mono); font-size: 11px;
+            color: var(--text-muted);
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 2px 7px;
+        }
+        .btn-edit-freq {
+            background: none; border: 1px solid var(--border);
+            border-radius: 4px; color: var(--text-faint);
+            font-size: 11px; padding: 2px 7px; cursor: pointer;
+            transition: all var(--transition);
+            white-space: nowrap;
+        }
+        .btn-edit-freq:hover { border-color: var(--accent); color: var(--accent); }
+
+        /* Inline freq editor */
+        .freq-editor { display: flex; align-items: center; gap: 6px; }
+        .freq-editor input {
+            font-family: var(--mono); font-size: 11px;
+            background: var(--surface2); border: 1px solid var(--accent);
+            border-radius: 4px; color: var(--text);
+            padding: 3px 7px; width: 130px; outline: none;
+        }
+        .freq-editor .btn-save-freq,
+        .freq-editor .btn-cancel-freq {
+            font-size: 11px; padding: 2px 8px;
+            border-radius: 4px; cursor: pointer; border: 1px solid;
+            transition: opacity var(--transition);
+        }
+        .btn-save-freq {
+            background: var(--accent-green-dim); border-color: rgba(34,197,94,0.35);
+            color: var(--accent-green);
+        }
+        .btn-cancel-freq {
+            background: transparent; border-color: var(--border);
+            color: var(--text-faint);
+        }
+        .freq-editor .freq-mini-presets { display: flex; gap: 4px; }
+        .freq-mini-preset {
+            font-family: var(--mono); font-size: 10px;
+            padding: 2px 6px; border-radius: 10px;
+            border: 1px solid var(--border); background: none;
+            color: var(--text-faint); cursor: pointer;
+            transition: all var(--transition);
+        }
+        .freq-mini-preset:hover { border-color: var(--accent); color: var(--accent); }
+
+        /* Permissions */
+        .perms-cell { display: flex; gap: 5px; flex-wrap: wrap; }
+        .perm-chip {
+            display: inline-flex; align-items: center; gap: 4px;
+            font-family: var(--mono); font-size: 10px;
+            padding: 2px 7px; border-radius: 20px; cursor: pointer;
+            border: 1px solid var(--border);
+            color: var(--text-faint);
+            background: transparent;
+            transition: all var(--transition);
+            user-select: none;
+        }
+        .perm-chip.active {
+            border-color: rgba(59,130,246,0.4);
+            background: var(--accent-dim);
+            color: var(--accent);
+        }
+        .perm-chip .dot {
+            width: 5px; height: 5px; border-radius: 50%;
+            background: currentColor; opacity: 0.7;
+        }
+
+        /* Delete */
+        .btn-del {
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-faint);
+            font-size: 11px; padding: 5px 10px;
+            cursor: pointer;
+            transition: all var(--transition);
+            display: flex; align-items: center; gap: 4px;
+        }
+        .btn-del:hover {
+            border-color: rgba(239,68,68,0.5);
+            background: var(--accent-red-dim);
+            color: var(--accent-red);
+        }
+        .btn-del svg { width: 11px; height: 11px; stroke: currentColor; fill: none; }
+
+        /* ── Theme toggle ── */
+        .theme-toggle {
+            margin-left: auto;
+            display: flex; align-items: center; gap: 6px;
+            background: var(--surface2);
+            border: 1px solid var(--border2);
+            border-radius: 20px;
+            padding: 4px 6px 4px 10px;
+            cursor: pointer;
+            transition: all var(--transition);
+            color: var(--text-muted);
+            font-size: 11px; font-weight: 500;
+        }
+        .theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
+        .theme-toggle-track {
+            width: 28px; height: 16px; border-radius: 8px;
+            background: var(--border2);
+            position: relative; transition: background var(--transition);
+            flex-shrink: 0;
+        }
+        [data-theme="light"] .theme-toggle-track { background: var(--accent); }
+        .theme-toggle-thumb {
+            width: 12px; height: 12px; border-radius: 50%;
+            background: var(--text-muted);
+            position: absolute; top: 2px; left: 2px;
+            transition: all var(--transition);
+        }
+        [data-theme="light"] .theme-toggle-thumb { left: 14px; background: #fff; }
+
+        /* ── Badge tg in light ── */
+        [data-theme="light"] .badge-tg { color: #0284c7; }
+        [data-theme="light"] .badge-mail { color: var(--accent-amber); }
+
+
+        .empty {
+            padding: 40px; text-align: center;
+            color: var(--text-faint); font-size: 13px;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed; bottom: 24px; right: 24px;
+            background: var(--surface2);
+            border: 1px solid var(--border2);
+            border-radius: var(--radius);
+            padding: 10px 16px;
+            font-size: 13px; color: var(--text);
+            display: flex; align-items: center; gap: 8px;
+            transform: translateY(80px); opacity: 0;
+            transition: all 0.25s ease;
+            pointer-events: none; z-index: 100;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent-green); flex-shrink: 0; }
     </style>
 </head>
 <body>
-<h2>Управление уведомлениями</h2>
 
-<div class="form-section">
-    <h3>Добавить пользователя</h3>
-    <input type="number" id="userId" placeholder="ID (Telegram ID)">
-    <input type="text" id="email" placeholder="Email (если Mail)">
-    <select id="notifier">
-        <option value="telegram">Telegram</option>
-        <option value="mail">Mail</option>
-    </select>
-    <input type="text" id="frequency" placeholder="Частота (Immediate или 10:00 18:00)">
-    <button onclick="addUser()">Добавить</button>
+<header class="header">
+    <div class="header-icon">
+        <svg viewBox="0 0 16 16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 8c0 2.76-2.24 5-5 5S3 10.76 3 8s2.24-5 5-5 5 2.24 5 5z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 5.5v3l1.5 1.5"/></svg>
+    </div>
+    <h1>Notifier Admin</h1>
+    <span class="header-badge" id="total-badge">0 users</span>
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeToggle">
+        <span id="themeLabel">Светлая</span>
+        <div class="theme-toggle-track"><div class="theme-toggle-thumb"></div></div>
+    </button>
+</header>
+
+<div class="layout">
+    <!-- Sidebar: Add User Form -->
+    <aside class="sidebar">
+        <p class="section-title">Добавить пользователя</p>
+
+        <div class="form-group">
+            <label>Telegram ID</label>
+            <input type="number" id="userId" placeholder="123456789">
+        </div>
+        <div class="form-group">
+            <label>Имя пользователя (Label)</label>
+            <input type="text" id="userLabel" placeholder="Напр: Иван Иванов">
+        </div>
+        <div class="form-group">
+            <label>Email</label>
+            <input type="text" id="email" placeholder="user@example.com">
+        </div>
+        <div class="form-group">
+            <label>Тип уведомлений</label>
+            <select id="notifier">
+                <option value="telegram">Telegram</option>
+                <option value="mail">Mail</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Частота</label>
+            <div class="freq-row">
+                <input type="text" id="frequency" placeholder="Immediate или 10:00 18:00">
+                <button class="freq-toggle" onclick="toggleFreqPresets()">Шаблоны</button>
+            </div>
+            <div class="freq-presets" id="freqPresets">
+                <span class="freq-preset" onclick="setFreq('Immediate')">Immediate</span>
+                <span class="freq-preset" onclick="setFreq('09:00 18:00')">09:00 18:00</span>
+                <span class="freq-preset" onclick="setFreq('08:00 12:00 20:00')">08:00 12:00 20:00</span>
+                <span class="freq-preset" onclick="setFreq('10:00')">10:00</span>
+                <span class="freq-preset" onclick="setFreq('07:00 23:00')">07:00 23:00</span>
+            </div>
+        </div>
+
+        <button class="btn-add" onclick="addUser()">
+            <svg viewBox="0 0 16 16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 3v10M3 8h10"/></svg>
+            Добавить
+        </button>
+    </aside>
+
+    <!-- Main: Table -->
+    <main class="main">
+        <div class="stats" id="statsRow">
+            <div class="stat"><div class="stat-label">Всего</div><div class="stat-value" id="stat-total">0</div></div>
+            <div class="stat"><div class="stat-label">Telegram</div><div class="stat-value blue" id="stat-tg">0</div></div>
+            <div class="stat"><div class="stat-label">Mail</div><div class="stat-value green" id="stat-mail">0</div></div>
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Имя (Label)</th> <!-- Новая колонка -->
+                    <th>Тип</th>
+                    <th>Email</th>
+                    <th>Частота</th>
+                    <th>Права доступа</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody id="userTable">
+                <tr><td colspan="6" class="empty">Загрузка…</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
 </div>
 
-<table>
-    <thead>
-    <tr>
-        <th>ID</th>
-        <th>Тип</th>
-        <th>Email</th>
-        <th>Частота</th>
-        <th>Действие</th>
-    </tr>
-    </thead>
-    <tbody id="userTable"></tbody>
-</table>
+<div class="toast" id="toast">
+    <span class="toast-dot"></span>
+    <span id="toast-msg">Сохранено</span>
+</div>
 
 <script>
-    const ALL_PERMISSIONS = ["CREATE", "UPDATE", "DELETE"];
+    const ALL_PERMISSIONS = ["CREATE","RENAME","REMOVE","CHMOD"];
+    const FREQ_PRESETS_MINI = ["Immediate","09:00 18:00","10:00","08:00 20:00"];
 
-    async function loadUsers() {
-        const res = await fetch('/users');
-        const users = await res.json();
-        const tbody = document.getElementById('userTable');
-        tbody.innerHTML = '';
+    let editingFreqId = null;
 
-        users.forEach(u => {
-            // Генерируем чекбоксы для каждого права
-            let permsHtml = ALL_PERMISSIONS.map(p => `
-            <label style="margin-right:10px; font-size: 12px;">
-                <input type="checkbox"
-                       ${u.permissions && u.permissions.includes(p) ? 'checked' : ''}
-                       onchange="updatePermissions(${u.id}, '${p}', this.checked)">
-                ${p}
-            </label>
-        `).join('');
-
-            tbody.innerHTML += `
-            <tr>
-                <td>${u.id}</td>
-                <td><b>${u.notifier}</b></td>
-                <td>${u.email || '-'}</td>
-                <td><code>${u.frequency}</code></td>
-                <td>${permsHtml}</td>
-                <td><button class="del" onclick="deleteUser(${u.id})">Удалить</button></td>
-            </tr>`;
-        });
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        document.getElementById('toast-msg').textContent = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2200);
     }
 
-    async function updatePermissions(userId, perm, isChecked) {
-        // Сначала получаем текущего пользователя, чтобы знать его текущие права
-        const res = await fetch('/users');
-        const users = await res.json();
-        const user = users.find(u => u.id === userId);
+    function toggleFreqPresets() {
+        document.getElementById('freqPresets').classList.toggle('open');
+    }
 
-        let perms = user.permissions || [];
-        if (isChecked) {
-            if (!perms.includes(perm)) perms.push(perm);
-        } else {
-            perms = perms.filter(p => p !== perm);
+    function setFreq(v) {
+        document.getElementById('frequency').value = v;
+        document.getElementById('freqPresets').classList.remove('open');
+    }
+
+    function updateStats(users) {
+        const total = users.length;
+        const tg = users.filter(u => u.notifier === 'telegram').length;
+        const mail = users.filter(u => u.notifier === 'mail').length;
+        document.getElementById('stat-total').textContent = total;
+        document.getElementById('stat-tg').textContent = tg;
+        document.getElementById('stat-mail').textContent = mail;
+        document.getElementById('total-badge').textContent = total + ' user' + (total !== 1 ? 's' : '');
+    }
+
+    function renderFreqCell(u) {
+        if (editingFreqId === u.id) {
+            const presetsHtml = FREQ_PRESETS_MINI.map(p =>
+                `<button class="freq-mini-preset" onclick="applyMiniPreset(${u.id}, '${p}')">${p}</button>`
+            ).join('');
+            return `
+      <div class="freq-editor">
+        <input type="text" id="freq-input-${u.id}" value="${u.frequency}" onkeydown="freqKeydown(event, ${u.id})">
+        <div class="freq-mini-presets">${presetsHtml}</div>
+        <button class="btn-save-freq" onclick="saveFreq(${u.id})">✓</button>
+        <button class="btn-cancel-freq" onclick="cancelFreq()">✕</button>
+      </div>`;
+        }
+        return `
+    <div class="cell-freq">
+      <span class="freq-code">${u.frequency}</span>
+      <button class="btn-edit-freq" onclick="startEditFreq(${u.id})">Изменить</button>
+    </div>`;
+    }
+
+    function startEditFreq(id) {
+        editingFreqId = id;
+        renderTable(window._usersCache);
+        setTimeout(() => {
+            const inp = document.getElementById(`freq-input-${id}`);
+            if (inp) { inp.focus(); inp.select(); }
+        }, 30);
+    }
+
+    function cancelFreq() {
+        editingFreqId = null;
+        renderTable(window._usersCache);
+    }
+
+    function freqKeydown(e, id) {
+        if (e.key === 'Enter') saveFreq(id);
+        if (e.key === 'Escape') cancelFreq();
+    }
+
+    function applyMiniPreset(id, val) {
+        const inp = document.getElementById(`freq-input-${id}`);
+        if (inp) inp.value = val;
+    }
+
+    async function saveFreq(id) {
+        const inp = document.getElementById(`freq-input-${id}`);
+        if (!inp) return;
+        const newFreq = inp.value.trim();
+        if (!newFreq) return;
+
+        // Optimistic update
+        window._usersCache = window._usersCache.map(u =>
+            u.id === id ? {...u, frequency: newFreq} : u
+        );
+        editingFreqId = null;
+        renderTable(window._usersCache);
+
+        try {
+            await fetch(`/users/${id}/frequency`, {
+                method: 'PATCH',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ frequency: newFreq })
+            });
+            showToast('Частота обновлена');
+        } catch(e) {
+            showToast('Ошибка сохранения');
+        }
+    }
+
+    function renderTable(users) {
+        window._usersCache = users;
+        updateStats(users);
+        const tbody = document.getElementById('userTable');
+
+        if (!users.length) {
+            tbody.innerHTML = '<tr><td colspan="6" class="empty">Нет пользователей</td></tr>';
+            return;
         }
 
-        // Отправляем обновленный список на сервер
+        tbody.innerHTML = users.map(u => {
+            const badge = u.notifier === 'telegram'
+                ? `<span class="badge badge-tg">
+           <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0zm5.95 8.28l-2.02 9.51c-.15.66-.54.82-1.09.51l-3-2.21-1.45 1.4c-.16.16-.3.3-.61.3l.22-3.07 5.6-5.06c.24-.22-.05-.34-.38-.12L7.08 14.23l-2.94-.92c-.64-.2-.65-.64.13-.95l11.53-4.44c.54-.2 1.01.13.83.94l.32-.58z"/></svg>
+           Telegram</span>`
+                : `<span class="badge badge-mail">
+           <svg viewBox="0 0 24 24"><path fill="currentColor" d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+           Mail</span>`;
+
+            const permsHtml = ALL_PERMISSIONS.map(p => {
+                const active = u.permissions && u.permissions.includes(p);
+                return `<span class="perm-chip ${active ? 'active' : ''}" onclick="togglePerm(${u.id}, '${p}')">
+        <span class="dot"></span>${p}</span>`;
+            }).join('');
+
+            return `<tr>
+      <td class="cell-id">#${u.id}</td>
+      <td style="font-weight:500;">${u.user_label || '—'}</td> <!-- Новое поле -->
+      <td>${badge}</td>
+      <td style="font-size:12px; color: var(--text-muted);">${u.email || '—'}</td>
+      <td>${renderFreqCell(u)}</td>
+      <td><div class="perms-cell">${permsHtml}</div></td>
+      <td>
+        <button class="btn-del" onclick="deleteUser(${u.id})">
+          <svg viewBox="0 0 16 16" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5">
+            <path d="M3 4h10M6 4V2.5h4V4M5 4l.5 9h5l.5-9"/>
+          </svg>
+          Удалить
+        </button>
+      </td>
+    </tr>`;
+        }).join('');
+    }
+
+    async function loadUsers() {
+        try {
+            const res = await fetch('/users');
+            const users = await res.json();
+            renderTable(users);
+        } catch(e) {
+            document.getElementById('userTable').innerHTML =
+                '<tr><td colspan="6" class="empty">Ошибка загрузки данных</td></tr>';
+        }
+    }
+
+    async function togglePerm(userId, perm) {
+        const users = window._usersCache;
+        const user = users.find(u => u.id === userId);
+        if (!user) return;
+
+        let perms = [...(user.permissions || [])];
+        if (perms.includes(perm)) {
+            perms = perms.filter(p => p !== perm);
+        } else {
+            perms.push(perm);
+        }
+
+        user.permissions = perms;
+        renderTable(users);
+
         await fetch(`/users/${userId}/permissions`, {
             method: 'PATCH',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(perms)
         });
-        console.log(`Updated permissions for ${userId}:`, perms);
+        showToast('Права обновлены');
     }
 
     async function addUser() {
+        const id = parseInt(document.getElementById('userId').value);
+        const userLabel = document.getElementById('userLabel').value; // Получаем Label
+        const email = document.getElementById('email').value;
+        const notifier = document.getElementById('notifier').value;
+        const frequency = document.getElementById('frequency').value;
+
+        if (!id || !frequency || !userLabel) {
+            showToast('Заполните ID, Имя и Частоту');
+            return;
+        }
+
         const user = {
-            id: parseInt(document.getElementById('userId').value),
-            email: document.getElementById('email').value,
-            notifier: document.getElementById('notifier').value,
-            frequency: document.getElementById('frequency').value,
-            permissions: ["CREATE"] // по умолчанию
+            id,
+            user_label: userLabel, // Отправляем на сервер
+            email,
+            notifier,
+            frequency,
+            permissions: ["CREATE"],
+            is_verified: true // Для админки ставим true сразу
         };
+
         await fetch('/users', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(user)
         });
+
+        // Очистка
+        document.getElementById('userId').value = '';
+        document.getElementById('userLabel').value = '';
+        document.getElementById('email').value = '';
+        document.getElementById('frequency').value = '';
+
+        showToast('Пользователь добавлен');
         loadUsers();
     }
 
     async function deleteUser(id) {
+        window._usersCache = (window._usersCache || []).filter(u => u.id !== id);
+        renderTable(window._usersCache);
         await fetch(`/users/${id}`, { method: 'DELETE' });
-        loadUsers();
+        showToast('Пользователь удалён');
     }
+
+    window._usersCache = [];
+
+    function toggleTheme() {
+        const html = document.documentElement;
+        const isLight = html.getAttribute('data-theme') === 'light';
+        html.setAttribute('data-theme', isLight ? 'dark' : 'light');
+        document.getElementById('themeLabel').textContent = isLight ? 'Светлая' : 'Тёмная';
+        localStorage.setItem('notifier-theme', isLight ? 'dark' : 'light');
+    }
+
+    (function initTheme() {
+        const saved = localStorage.getItem('notifier-theme');
+        if (saved === 'light') {
+            document.documentElement.setAttribute('data-theme', 'light');
+            document.getElementById('themeLabel').textContent = 'Тёмная';
+        }
+    })();
 
     loadUsers();
 </script>
