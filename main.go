@@ -29,6 +29,10 @@ func NotesManager(cfg *config.Config, bot *tgbotapi.BotAPI, notsChan chan models
 	ticker := time.NewTicker(time.Minute)
 	defer ticker.Stop()
 
+	// Таймер для очистки старых ивентов (например, каждый час)
+	cleanupTicker := time.NewTicker(time.Hour)
+	defer cleanupTicker.Stop()
+
 	for {
 		select {
 		case note, ok := <-notsChan:
@@ -82,7 +86,55 @@ func NotesManager(cfg *config.Config, bot *tgbotapi.BotAPI, notsChan chan models
 				}
 			}
 			usersMu.RUnlock()
+
+		case <-cleanupTicker.C:
+			cleanupOldEvents()
 		}
+	}
+}
+
+// cleanupOldEvents удаляет ивенты, которые старше чем любой из user.LastNotifiedAt
+func cleanupOldEvents() {
+	usersMu.RLock()
+	defer usersMu.RUnlock()
+
+	// Находим минимальную (самую старую) дату LastNotifiedAt среди всех пользователей
+	var minLastNotifiedAt time.Time
+	hasUsers := false
+
+	for _, user := range users {
+		if !user.LastNotifiedAt.IsZero() {
+			if !hasUsers || user.LastNotifiedAt.Before(minLastNotifiedAt) {
+				minLastNotifiedAt = user.LastNotifiedAt
+				hasUsers = true
+			}
+		}
+	}
+
+	// Если нет пользователей или ни у одного нет LastNotifiedAt, ничего не удаляем
+	if !hasUsers {
+		return
+	}
+
+	eventsMu.Lock()
+	defer eventsMu.Unlock()
+
+	// Фильтруем ивенты, оставляем только те, которые новее minLastNotifiedAt
+	newEvents := make([]models2.Event, 0, len(events))
+	removedCount := 0
+
+	for _, event := range events {
+		if event.CreatedAt.After(minLastNotifiedAt) {
+			newEvents = append(newEvents, event)
+		} else {
+			removedCount++
+		}
+	}
+
+	if removedCount > 0 {
+		events = newEvents
+		fmt.Printf("Cleaned up %d old events (older than %s)\n",
+			removedCount, minLastNotifiedAt.Format("2006-01-02 15:04:05"))
 	}
 }
 
