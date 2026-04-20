@@ -74,6 +74,28 @@ func RunUserAPI(port string, users *[]*models.User, mu *sync.RWMutex) {
 
 			http.Error(w, "user not found", http.StatusNotFound)
 		})
+		r.Patch("/{id}/frequency", func(w http.ResponseWriter, r *http.Request) {
+			idStr := chi.URLParam(r, "id")
+			id, _ := strconv.ParseInt(idStr, 10, 64)
+			var newFreq string
+			if err := json.NewDecoder(r.Body).Decode(&newFreq); err != nil {
+				http.Error(w, "invalid frequency format", http.StatusBadRequest)
+				return
+			}
+
+			mu.Lock()
+			defer mu.Unlock()
+
+			for _, u := range *users {
+				if u.ID == id {
+					u.Frequency = newFreq
+					renderJSON(w, u)
+					return
+				}
+			}
+
+			http.Error(w, "user not found", http.StatusNotFound)
+		})
 
 		r.Delete("/{id}", func(w http.ResponseWriter, r *http.Request) {
 			idStr := chi.URLParam(r, "id")
