@@ -26,7 +26,7 @@
 │   ├── user_api/       # API и HTTP-сервер для Web-интерфейса
 │   ├── models/         # Описание структур данных (User, Event)
 │   ├── permissions/    # Логика проверки прав доступа
-│   └── repository/    # Модуль работы с Redis
+│   └── repository/     # Модуль работы с Redis
 ├── main.go             # Точка входа в приложение
 ├── users.json          # База данных пользователей (в формате JSON)
 ├── index.html          # Интерфейс Web-морды
