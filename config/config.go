@@ -14,6 +14,13 @@ type Config struct {
 	Mail          mail_notifier.EmailAccount `yaml:"mail"`
 	TargetFolder  string                     `yaml:"target_folder"`
 	UsersFilepath string                     `yaml:"users_filepath"`
+	Redis         RedisConfig                `yaml:"redis_config"`
+}
+
+type RedisConfig struct {
+	Addr     string `yaml:"addr"`
+	Password string `yaml:"password"`
+	DB       int    `yaml:"db"`
 }
 
 func LoadConfig(path string) (*Config, error) {
